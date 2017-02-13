@@ -9,211 +9,221 @@ using System.Text;
 
 namespace DesktopToast
 {
-	/// <summary>
-	/// Toast request container
-	/// </summary>
-	[DataContract]
-	public class ToastRequest
-	{
-		#region Public Property
+    /// <summary>
+    /// Toast request container
+    /// </summary>
+    [DataContract]
+    public class ToastRequest
+    {
+        #region Private Fields
 
-		/// <summary>
-		/// Toast title (optional)
-		/// </summary>
-		[DataMember]
-		public string ToastTitle { get; set; }
+        private string _shortcutIconFilePath;
 
-		/// <summary>
-		/// Toast body (required for toast)
-		/// </summary>
-		[DataMember]
-		public string ToastBody
-		{
-			get { return ToastBodyList?[0]; }
-			set { ToastBodyList = new string[] { value }; }
-		}
+        private IList<string> _toastBodyList;
 
-		/// <summary>
-		/// Toast body list (optional)
-		/// </summary>
-		/// <remarks>If specified, toast body will be substituted by this list.</remarks>
-		[DataMember]
-		public IList<string> ToastBodyList
-		{
-			get { return _toastBodyList; }
-			set { _toastBodyList = value?.Where(x => !string.IsNullOrWhiteSpace(x)).ToList(); }
-		}
-		private IList<string> _toastBodyList;
+        #endregion Private Fields
 
-		/// <summary>
-		/// Logo image file path of toast (optional)
-		/// </summary>
-		/// <remarks>
-		/// This file path must be in the following form:
-		/// "file:///" + full file path
-		/// </remarks>
-		[DataMember]
-		public string ToastLogoFilePath { get; set; }
+        #region Public Constructors
 
-		/// <summary>
-		/// Audio type of toast (optional)
-		/// </summary>
-		[DataMember]
-		public ToastAudio ToastAudio { get; set; }
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        public ToastRequest()
+        { }
 
-		/// <summary>
-		/// XML representation of toast (optional)
-		/// </summary>
-		/// <remarks>If specified, this XML will be used for a toast as it is. The other toast elements
-		/// will be ignored.</remarks>
-		[DataMember]
-		public string ToastXml { get; set; }
+        #endregion Public Constructors
 
-		/// <summary>
-		/// Shortcut file name to be installed in Start menu (required for shortcut)
-		/// </summary>
-		[DataMember]
-		public string ShortcutFileName { get; set; }
+        #region Internal Constructors
 
-		/// <summary>
-		/// Target file path of shortcut (required for shortcut)
-		/// </summary>
-		[DataMember]
-		public string ShortcutTargetFilePath { get; set; }
+        internal ToastRequest(string requestJson) : this()
+        {
+            Import(requestJson);
+        }
 
-		/// <summary>
-		/// Arguments of shortcut (optional)
-		/// </summary>
-		[DataMember]
-		public string ShortcutArguments { get; set; }
+        #endregion Internal Constructors
 
-		/// <summary>
-		/// Comment of shortcut (optional)
-		/// </summary>
-		[DataMember]
-		public string ShortcutComment { get; set; }
+        #region Public Properties
 
-		/// <summary>
-		/// Working folder of shortcut (optional)
-		/// </summary>
-		[DataMember]
-		public string ShortcutWorkingFolder { get; set; }
+        /// <summary>
+        /// AppUserModelToastActivatorCLSID of application (optional, for Action Center of Windows 10)
+        /// </summary>
+        /// <remarks>This CLSID is necessary for an application to be started by COM.</remarks>
+        [DataMember]
+        public Guid ActivatorId { get; set; }
 
-		/// <summary>
-		/// Window state of shortcut (optional)
-		/// </summary>
-		[DataMember]
-		public ShortcutWindowState ShortcutWindowState { get; set; }
+        /// <summary>
+        /// AppUserModelID of application (required)
+        /// </summary>
+        /// <remarks>
+        /// An AppUserModelID must be in the following form:
+        /// CompanyName.ProductName.SubProduct.VersionInformation
+        /// It can have no more than 128 characters and cannot contain spaces. Each section should be
+        /// camel-cased. CompanyName and ProductName should always be used, while SubProduct and
+        /// VersionInformation are optional.
+        /// </remarks>
+        [DataMember]
+        public string AppId { get; set; }
 
-		/// <summary>
-		/// Icon file path of shortcut (optional)
-		/// </summary>
-		/// <remarks>If not specified, target file path will be used.</remarks>
-		[DataMember]
-		public string ShortcutIconFilePath
-		{
-			get
-			{
-				return !string.IsNullOrWhiteSpace(_shortcutIconFilePath)
-					? _shortcutIconFilePath
-					: ShortcutTargetFilePath;
-			}
-			set { _shortcutIconFilePath = value; }
-		}
-		private string _shortcutIconFilePath;
+        /// <summary>
+        /// Arguments of shortcut (optional)
+        /// </summary>
+        [DataMember]
+        public string ShortcutArguments { get; set; }
 
-		/// <summary>
-		/// AppUserModelID of application (required)
-		/// </summary>
-		/// <remarks>
-		/// An AppUserModelID must be in the following form:
-		/// CompanyName.ProductName.SubProduct.VersionInformation
-		/// It can have no more than 128 characters and cannot contain spaces. Each section should be
-		/// camel-cased. CompanyName and ProductName should always be used, while SubProduct and
-		/// VersionInformation are optional.
-		/// </remarks>
-		[DataMember]
-		public string AppId { get; set; }
+        /// <summary>
+        /// Comment of shortcut (optional)
+        /// </summary>
+        [DataMember]
+        public string ShortcutComment { get; set; }
 
-		/// <summary>
-		/// AppUserModelToastActivatorCLSID of application (optional, for Action Center of Windows 10)
-		/// </summary>
-		/// <remarks>This CLSID is necessary for an application to be started by COM.</remarks>
-		[DataMember]
-		public Guid ActivatorId { get; set; }
+        /// <summary>
+        /// Shortcut file name to be installed in Start menu (required for shortcut)
+        /// </summary>
+        [DataMember]
+        public string ShortcutFileName { get; set; }
 
-		/// <summary>
-		/// Waiting duration before showing a toast after the shortcut file is installed (optional)
-		/// </summary>
-		[DataMember]
-		public TimeSpan WaitingDuration { get; set; }
+        /// <summary>
+        /// Icon file path of shortcut (optional)
+        /// </summary>
+        /// <remarks>If not specified, target file path will be used.</remarks>
+        [DataMember]
+        public string ShortcutIconFilePath
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(_shortcutIconFilePath)
+                    ? _shortcutIconFilePath
+                    : ShortcutTargetFilePath;
+            }
+            set { _shortcutIconFilePath = value; }
+        }
 
-		#endregion
+        /// <summary>
+        /// Target file path of shortcut (required for shortcut)
+        /// </summary>
+        [DataMember]
+        public string ShortcutTargetFilePath { get; set; }
 
-		#region Internal Property
+        /// <summary>
+        /// Window state of shortcut (optional)
+        /// </summary>
+        [DataMember]
+        public ShortcutWindowState ShortcutWindowState { get; set; }
 
-		internal bool IsShortcutValid =>
-			!string.IsNullOrWhiteSpace(AppId) &&
-			!string.IsNullOrWhiteSpace(ShortcutFileName) &&
-			!string.IsNullOrWhiteSpace(ShortcutTargetFilePath);
+        /// <summary>
+        /// Working folder of shortcut (optional)
+        /// </summary>
+        [DataMember]
+        public string ShortcutWorkingFolder { get; set; }
 
-		internal bool IsToastValid =>
-			!string.IsNullOrWhiteSpace(AppId) &&
-			((ToastBodyList?.Any()).GetValueOrDefault() ||
-			 !string.IsNullOrWhiteSpace(ToastXml));
+        /// <summary>
+        /// Audio type of toast (optional)
+        /// </summary>
+        [DataMember]
+        public ToastAudio ToastAudio { get; set; }
 
-		#endregion
+        /// <summary>
+        /// Toast body (required for toast)
+        /// </summary>
+        [DataMember]
+        public string ToastBody
+        {
+            get { return ToastBodyList?[0]; }
+            set { ToastBodyList = new string[] { value }; }
+        }
 
-		#region Constructor
+        /// <summary>
+        /// Toast body list (optional)
+        /// </summary>
+        /// <remarks>If specified, toast body will be substituted by this list.</remarks>
+        [DataMember]
+        public IList<string> ToastBodyList
+        {
+            get { return _toastBodyList; }
+            set { _toastBodyList = value?.Where(x => !string.IsNullOrWhiteSpace(x)).ToList(); }
+        }
 
-		/// <summary>
-		/// Default constructor
-		/// </summary>
-		public ToastRequest()
-		{ }
+        /// <summary>
+        /// Logo image file path of toast (optional)
+        /// </summary>
+        /// <remarks>
+        /// This file path must be in the following form:
+        /// "file:///" + full file path
+        /// </remarks>
+        [DataMember]
+        public string ToastLogoFilePath { get; set; }
 
-		internal ToastRequest(string requestJson) : this()
-		{
-			Import(requestJson);
-		}
+        /// <summary>
+        /// Toast title (optional)
+        /// </summary>
+        [DataMember]
+        public string ToastTitle { get; set; }
 
-		#endregion
+        /// <summary>
+        /// XML representation of toast (optional)
+        /// </summary>
+        /// <remarks>If specified, this XML will be used for a toast as it is. The other toast elements
+        /// will be ignored.</remarks>
+        [DataMember]
+        public string ToastXml { get; set; }
 
-		#region Import/Export
+        /// <summary>
+        /// Waiting duration before showing a toast after the shortcut file is installed (optional)
+        /// </summary>
+        [DataMember]
+        public TimeSpan WaitingDuration { get; set; }
 
-		/// <summary>
-		/// Imports from a request in JSON format.
-		/// </summary>
-		/// <param name="requestJson">Request in JSON format</param>
-		internal void Import(string requestJson)
-		{
-			using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(requestJson)))
-			{
-				var serializer = new DataContractJsonSerializer(typeof(ToastRequest));
-				var buff = (ToastRequest)serializer.ReadObject(stream);
+        #endregion Public Properties
 
-				typeof(ToastRequest).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-					.Where(x => x.CanWrite)
-					.ToList()
-					.ForEach(x => x.SetValue(this, x.GetValue(buff)));
-			}
-		}
+        #region Internal Properties
 
-		/// <summary>
-		/// Exports a request in JSON format.
-		/// </summary>
-		/// <returns>Request in JSON format</returns>
-		internal string Export()
-		{
-			using (var stream = new MemoryStream())
-			{
-				var serializer = new DataContractJsonSerializer(typeof(ToastRequest));
-				serializer.WriteObject(stream, this);
+        internal bool IsShortcutValid =>
+            !string.IsNullOrWhiteSpace(AppId) &&
+            !string.IsNullOrWhiteSpace(ShortcutFileName) &&
+            !string.IsNullOrWhiteSpace(ShortcutTargetFilePath);
 
-				return Encoding.UTF8.GetString(stream.ToArray());
-			}
-		}
+        internal bool IsToastValid =>
+            !string.IsNullOrWhiteSpace(AppId) &&
+            ((ToastBodyList?.Any()).GetValueOrDefault() ||
+             !string.IsNullOrWhiteSpace(ToastXml));
 
-		#endregion
-	}
+        #endregion Internal Properties
+
+        #region Internal Methods
+
+        /// <summary>
+        /// Exports a request in JSON format.
+        /// </summary>
+        /// <returns>Request in JSON format</returns>
+        internal string Export()
+        {
+            using (var stream = new MemoryStream())
+            {
+                var serializer = new DataContractJsonSerializer(typeof(ToastRequest));
+                serializer.WriteObject(stream, this);
+
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Imports from a request in JSON format.
+        /// </summary>
+        /// <param name="requestJson">Request in JSON format</param>
+        internal void Import(string requestJson)
+        {
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(requestJson)))
+            {
+                var serializer = new DataContractJsonSerializer(typeof(ToastRequest));
+                var buff = (ToastRequest)serializer.ReadObject(stream);
+
+                typeof(ToastRequest).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                    .Where(x => x.CanWrite)
+                    .ToList()
+                    .ForEach(x => x.SetValue(this, x.GetValue(buff)));
+            }
+        }
+
+        #endregion Internal Methods
+    }
 }

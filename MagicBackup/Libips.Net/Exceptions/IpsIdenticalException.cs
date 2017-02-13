@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 
 namespace CodeIsle.LibIpsNet.Exceptions
 {
     [Serializable]
     public class IpsIdenticalException : Exception
     {
+        #region Public Constructors
+
         public IpsIdenticalException()
             : base() { }
 
@@ -24,7 +23,13 @@ namespace CodeIsle.LibIpsNet.Exceptions
         public IpsIdenticalException(string format, Exception innerException, params object[] args)
             : base(string.Format(format, args), innerException) { }
 
+        #endregion Public Constructors
+
+        #region Protected Constructors
+
         protected IpsIdenticalException(SerializationInfo info, StreamingContext context)
             : base(info, context) { }
+
+        #endregion Protected Constructors
     }
 }

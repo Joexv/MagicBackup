@@ -1,42 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using CodeIsle.LibIpsNet.Utils;
 using System.IO;
-using CodeIsle.LibIpsNet.Utils;
+using System.Linq;
+
 namespace CodeIsle.LibIpsNet
 {
     public class Studier
     {
+        #region Public Enums
+
         public enum IpsError
         {
             // Patch applied or created successfully.
             IpsOk,
+
             // The patch is most likely not intended for this ROM.
             IpsNotThis,
+
             // The patch is technically valid, but seems scrambled or malformed.
             IpsScrambled,
+
             // The patch is invalid.
             IpsInvalid,
-            // One or both files is bigger than 16MB. The IPS format doesn't support that. 
+
+            // One or both files is bigger than 16MB. The IPS format doesn't support that.
             // The created patch contains only the differences to that point.
             Ips16MB,
+
             // The input buffers are identical.
             IpsIdentical,
         };
 
-        public struct IpsStudy
-        {
-            public IpsError Error;
-            public long OutlenMin;
-            public long OutlenMax;
-            // TODO: This is not really used in my version. May just remove it...
-            public long OutlenMinMem;
-        };
+        #endregion Public Enums
+
+        #region Public Methods
 
         public IpsStudy Study(string patch)
         {
-            using(FileStream patchStream = File.OpenRead(patch))
+            using (FileStream patchStream = File.OpenRead(patch))
             {
                 return Study(patchStream);
             }
@@ -73,7 +73,6 @@ namespace CodeIsle.LibIpsNet
                 {
                     thisout = offset + size;
                     patch.Seek(size, SeekOrigin.Current);
-
                 }
                 if (offset < lastoffset) w_scrambled = true;
                 lastoffset = offset;
@@ -81,7 +80,6 @@ namespace CodeIsle.LibIpsNet
                 if (patch.Position >= patch.Length) return study;
 
                 offset = Reader.Read24(patch);
-
             }
             study.OutlenMinMem = outlen;
             study.OutlenMax = 0xFFFFFFFF;
@@ -95,7 +93,6 @@ namespace CodeIsle.LibIpsNet
                     outlen = truncate;
                     w_notthis = true;
                 }
-
             }
             if (patch.Position != patch.Length) return study;
             study.OutlenMin = outlen;
@@ -103,7 +100,26 @@ namespace CodeIsle.LibIpsNet
             if (w_notthis) study.Error = IpsError.IpsNotThis;
             if (w_scrambled) study.Error = IpsError.IpsScrambled;
             return study;
-
         }
+
+        #endregion Public Methods
+
+        #region Public Structs
+
+        public struct IpsStudy
+        {
+            #region Public Fields
+
+            public IpsError Error;
+            public long OutlenMax;
+            public long OutlenMin;
+
+            // TODO: This is not really used in my version. May just remove it...
+            public long OutlenMinMem;
+
+            #endregion Public Fields
+        };
+
+        #endregion Public Structs
     }
 }

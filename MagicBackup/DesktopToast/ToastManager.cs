@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DesktopToast.Helper;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -6,382 +7,386 @@ using Windows.Data.Xml.Dom;
 using Windows.Foundation;
 using Windows.UI.Notifications;
 
-using DesktopToast.Helper;
-
 namespace DesktopToast
 {
-	/// <summary>
-	/// Manages toast notifications.
-	/// </summary>
-	public class ToastManager
-	{
-		/// <summary>
-		/// Shows a toast.
-		/// </summary>
-		/// <param name="request">Toast request</param>
-		/// <returns>Result of showing a toast</returns>
-		public static async Task<ToastResult> ShowAsync(ToastRequest request)
-		{
-			if (request == null)
-				throw new ArgumentNullException(nameof(request));
+    /// <summary>
+    /// Manages toast notifications.
+    /// </summary>
+    public class ToastManager
+    {
+        #region Private Fields
 
-			if (!OsVersion.IsEightOrNewer)
-				return ToastResult.Unavailable;
+        /// <summary>
+        /// Waiting duration before showing a toast after the shortcut file is installed
+        /// </summary>
+        /// <remarks>It seems that roughly 3 seconds are required.</remarks>
+        private static readonly TimeSpan _waitingDuration = TimeSpan.FromSeconds(3);
 
-			if (request.IsShortcutValid)
-				await CheckInstallShortcut(request);
+        #endregion Private Fields
 
-			if (!request.IsToastValid)
-				return ToastResult.Invalid;
+        #region Private Enums
 
-			var document = PrepareToastDocument(request);
-			if (document == null)
-				return ToastResult.Invalid;
+        private enum AudioOption
+        {
+            Silent,
+            Short,
+            Long,
+        }
 
-			return await ShowBaseAsync(document, request.AppId);
-		}
+        #endregion Private Enums
 
-		/// <summary>
-		/// Shows a toast using JSON format.
-		/// </summary>
-		/// <param name="requestJson">Toast request in JSON format</param>
-		/// <returns>Result of showing a toast</returns>
-		public static async Task<ToastResult> ShowAsync(string requestJson)
-		{
-			ToastRequest request;
-			try
-			{
-				request = new ToastRequest(requestJson);
-			}
-			catch
-			{
-				return ToastResult.Invalid;
-			}
+        #region Public Methods
 
-			return await ShowAsync(request);
-		}
+        /// <summary>
+        /// Shows a toast.
+        /// </summary>
+        /// <param name="request">Toast request</param>
+        /// <returns>Result of showing a toast</returns>
+        public static async Task<ToastResult> ShowAsync(ToastRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
 
-		/// <summary>
-		/// Shows a toast without toast request.
-		/// </summary>
-		/// <param name="document">Toast document</param>
-		/// <param name="appId">AppUserModelID</param>
-		/// <returns>Result of showing a toast</returns>
-		public static async Task<ToastResult> ShowAsync(XmlDocument document, string appId)
-		{
-			if (document == null)
-				throw new ArgumentNullException(nameof(document));
+            if (!OsVersion.IsEightOrNewer)
+                return ToastResult.Unavailable;
 
-			if (string.IsNullOrWhiteSpace(appId))
-				throw new ArgumentNullException(nameof(appId));
+            if (request.IsShortcutValid)
+                await CheckInstallShortcut(request);
 
-			if (!OsVersion.IsEightOrNewer)
-				return ToastResult.Unavailable;
+            if (!request.IsToastValid)
+                return ToastResult.Invalid;
 
-			return await ShowBaseAsync(document, appId);
-		}
+            var document = PrepareToastDocument(request);
+            if (document == null)
+                return ToastResult.Invalid;
 
-		#region Document
+            return await ShowBaseAsync(document, request.AppId);
+        }
 
-		private enum AudioOption
-		{
-			Silent,
-			Short,
-			Long,
-		}
+        /// <summary>
+        /// Shows a toast using JSON format.
+        /// </summary>
+        /// <param name="requestJson">Toast request in JSON format</param>
+        /// <returns>Result of showing a toast</returns>
+        public static async Task<ToastResult> ShowAsync(string requestJson)
+        {
+            ToastRequest request;
+            try
+            {
+                request = new ToastRequest(requestJson);
+            }
+            catch
+            {
+                return ToastResult.Invalid;
+            }
 
-		/// <summary>
-		/// Prepares a toast document.
-		/// </summary>
-		/// <param name="request">Toast request</param>
-		/// <returns>Toast document</returns>
-		private static XmlDocument PrepareToastDocument(ToastRequest request)
-		{
-			XmlDocument document;
-			if (!string.IsNullOrWhiteSpace(request.ToastXml))
-			{
-				// Load a toast document from XML.
-				document = new XmlDocument();
-				try
-				{
-					document.LoadXml(request.ToastXml);
-				}
-				catch
-				{
-					return null;
-				}
-			}
-			else
-			{
-				// Compose a toast document.
-				document = OsVersion.IsTenOrNewer
-					? ComposeVisualForWin10(request)
-					: ComposeVisualForWin8(request);
+            return await ShowAsync(request);
+        }
 
-				document = AddAudio(document, request);
-			}
+        /// <summary>
+        /// Shows a toast without toast request.
+        /// </summary>
+        /// <param name="document">Toast document</param>
+        /// <param name="appId">AppUserModelID</param>
+        /// <returns>Result of showing a toast</returns>
+        public static async Task<ToastResult> ShowAsync(XmlDocument document, string appId)
+        {
+            if (document == null)
+                throw new ArgumentNullException(nameof(document));
 
-			Debug.WriteLine(document.GetXml());
+            if (string.IsNullOrWhiteSpace(appId))
+                throw new ArgumentNullException(nameof(appId));
 
-			return document;
-		}
+            if (!OsVersion.IsEightOrNewer)
+                return ToastResult.Unavailable;
 
-		private static XmlDocument ComposeVisualForWin10(ToastRequest request)
-		{
-			var document = new XmlDocument();
-			document.AppendChild(document.CreateElement("toast"));
+            return await ShowBaseAsync(document, appId);
+        }
 
-			var visualElement = document.CreateElement("visual");
-			document.DocumentElement.AppendChild(visualElement);
+        #endregion Public Methods
 
-			var bindingElement = document.CreateElement("binding");
-			bindingElement.SetAttribute("template", "ToastGeneric");
-			visualElement.AppendChild(bindingElement);
+        #region Private Methods
 
-			if (!string.IsNullOrWhiteSpace(request.ToastTitle))
-			{
-				var toastTitle = document.CreateElement("text");
-				toastTitle.AppendChild(document.CreateTextNode(request.ToastTitle));
-				bindingElement.AppendChild(toastTitle);
-			}
+        private static XmlDocument AddAudio(XmlDocument document, ToastRequest request)
+        {
+            var option = CheckAudio(request.ToastAudio);
+            if (option == AudioOption.Long)
+                document.DocumentElement.SetAttribute("duration", "long");
 
-			foreach (string body in request.ToastBodyList)
-			{
-				var toastBody = document.CreateElement("text");
-				toastBody.AppendChild(document.CreateTextNode(body));
-				bindingElement.AppendChild(toastBody);
-			}
+            var audioElement = document.CreateElement("audio");
+            if (option == AudioOption.Silent)
+            {
+                audioElement.SetAttribute("silent", "true");
+            }
+            else
+            {
+                audioElement.SetAttribute("src", $"ms-winsoundevent:Notification.{request.ToastAudio.ToString().ToCamelWithSeparator('.')}");
+                audioElement.SetAttribute("loop", (option == AudioOption.Long) ? "true" : "false");
+            }
+            document.DocumentElement.AppendChild(audioElement);
 
-			if (!string.IsNullOrWhiteSpace(request.ToastLogoFilePath))
-			{
-				var appLogo = document.CreateElement("image");
-				appLogo.SetAttribute("placement", "appLogoOverride");
-				appLogo.SetAttribute("src", request.ToastLogoFilePath);
-				bindingElement.AppendChild(appLogo);
-			}
+            return document;
+        }
 
-			return document;
-		}
+        private static AudioOption CheckAudio(ToastAudio audio)
+        {
+            switch (audio)
+            {
+                case ToastAudio.Silent:
+                    return AudioOption.Silent;
 
-		private static XmlDocument ComposeVisualForWin8(ToastRequest request)
-		{
-			var templateType = GetTemplateType(request);
+                case ToastAudio.Default:
+                case ToastAudio.IM:
+                case ToastAudio.Mail:
+                case ToastAudio.Reminder:
+                case ToastAudio.SMS:
+                    return AudioOption.Short;
 
-			// Get a toast template.
-			var document = ToastNotificationManager.GetTemplateContent(templateType);
+                default:
+                    return AudioOption.Long;
+            }
+        }
 
-			// Fill in image element.
-			switch (templateType)
-			{
-				case ToastTemplateType.ToastImageAndText01:
-				case ToastTemplateType.ToastImageAndText02:
-				case ToastTemplateType.ToastImageAndText04:
-					var imageElements = document.GetElementsByTagName("image");
-					imageElements[0].Attributes.GetNamedItem("src").NodeValue = request.ToastLogoFilePath;
-					break;
-			}
+        /// <summary>
+        /// Checks and installs a shortcut file in Start menu.
+        /// </summary>
+        /// <param name="request">Toast request</param>
+        private static async Task CheckInstallShortcut(ToastRequest request)
+        {
+            var shortcutFilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), // Not CommonStartMenu
+                "Programs",
+                request.ShortcutFileName);
 
-			// Fill in text elements.
-			var textElements = document.GetElementsByTagName("text");
-			switch (templateType)
-			{
-				case ToastTemplateType.ToastImageAndText01:
-				case ToastTemplateType.ToastText01:
-					textElements[0].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
-					break;
+            var shortcut = new Shortcut();
 
-				case ToastTemplateType.ToastImageAndText02:
-				case ToastTemplateType.ToastText02:
-					textElements[0].AppendChild(document.CreateTextNode(request.ToastTitle));
-					textElements[1].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
-					break;
+            if (!shortcut.CheckShortcut(
+                shortcutPath: shortcutFilePath,
+                targetPath: request.ShortcutTargetFilePath,
+                arguments: request.ShortcutArguments,
+                comment: request.ShortcutComment,
+                workingFolder: request.ShortcutWorkingFolder,
+                windowState: request.ShortcutWindowState,
+                iconPath: request.ShortcutIconFilePath,
+                appId: request.AppId,
+                activatorId: request.ActivatorId))
+            {
+                shortcut.InstallShortcut(
+                    shortcutPath: shortcutFilePath,
+                    targetPath: request.ShortcutTargetFilePath,
+                    arguments: request.ShortcutArguments,
+                    comment: request.ShortcutComment,
+                    workingFolder: request.ShortcutWorkingFolder,
+                    windowState: request.ShortcutWindowState,
+                    iconPath: request.ShortcutIconFilePath,
+                    appId: request.AppId,
+                    activatorId: request.ActivatorId);
 
-				case ToastTemplateType.ToastImageAndText04:
-				case ToastTemplateType.ToastText04:
-					textElements[0].AppendChild(document.CreateTextNode(request.ToastTitle));
-					textElements[1].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
-					textElements[2].AppendChild(document.CreateTextNode(request.ToastBodyList[1]));
-					break;
-			}
+                await Task.Delay((TimeSpan.Zero < request.WaitingDuration) ? request.WaitingDuration : _waitingDuration);
+            }
+        }
 
-			return document;
-		}
+        private static XmlDocument ComposeVisualForWin10(ToastRequest request)
+        {
+            var document = new XmlDocument();
+            document.AppendChild(document.CreateElement("toast"));
 
-		private static ToastTemplateType GetTemplateType(ToastRequest request)
-		{
-			if (!string.IsNullOrWhiteSpace(request.ToastLogoFilePath))
-			{
-				if (string.IsNullOrWhiteSpace(request.ToastTitle))
-					return ToastTemplateType.ToastImageAndText01;
+            var visualElement = document.CreateElement("visual");
+            document.DocumentElement.AppendChild(visualElement);
 
-				return (request.ToastBodyList.Count < 2)
-					? ToastTemplateType.ToastImageAndText02
-					: ToastTemplateType.ToastImageAndText04;
+            var bindingElement = document.CreateElement("binding");
+            bindingElement.SetAttribute("template", "ToastGeneric");
+            visualElement.AppendChild(bindingElement);
 
-				// ToastTemplateType.ToastImageAndText03 will not be used.
-			}
-			else
-			{
-				if (string.IsNullOrWhiteSpace(request.ToastTitle))
-					return ToastTemplateType.ToastText01;
+            if (!string.IsNullOrWhiteSpace(request.ToastTitle))
+            {
+                var toastTitle = document.CreateElement("text");
+                toastTitle.AppendChild(document.CreateTextNode(request.ToastTitle));
+                bindingElement.AppendChild(toastTitle);
+            }
 
-				return (request.ToastBodyList.Count < 2)
-					? ToastTemplateType.ToastText02
-					: ToastTemplateType.ToastText04;
+            foreach (string body in request.ToastBodyList)
+            {
+                var toastBody = document.CreateElement("text");
+                toastBody.AppendChild(document.CreateTextNode(body));
+                bindingElement.AppendChild(toastBody);
+            }
 
-				// ToastTemplateType.ToastText03 will not be used.
-			}
-		}
+            if (!string.IsNullOrWhiteSpace(request.ToastLogoFilePath))
+            {
+                var appLogo = document.CreateElement("image");
+                appLogo.SetAttribute("placement", "appLogoOverride");
+                appLogo.SetAttribute("src", request.ToastLogoFilePath);
+                bindingElement.AppendChild(appLogo);
+            }
 
-		private static XmlDocument AddAudio(XmlDocument document, ToastRequest request)
-		{
-			var option = CheckAudio(request.ToastAudio);
-			if (option == AudioOption.Long)
-				document.DocumentElement.SetAttribute("duration", "long");
+            return document;
+        }
 
-			var audioElement = document.CreateElement("audio");
-			if (option == AudioOption.Silent)
-			{
-				audioElement.SetAttribute("silent", "true");
-			}
-			else
-			{
-				audioElement.SetAttribute("src", $"ms-winsoundevent:Notification.{request.ToastAudio.ToString().ToCamelWithSeparator('.')}");
-				audioElement.SetAttribute("loop", (option == AudioOption.Long) ? "true" : "false");
-			}
-			document.DocumentElement.AppendChild(audioElement);
+        private static XmlDocument ComposeVisualForWin8(ToastRequest request)
+        {
+            var templateType = GetTemplateType(request);
 
-			return document;
-		}
+            // Get a toast template.
+            var document = ToastNotificationManager.GetTemplateContent(templateType);
 
-		private static AudioOption CheckAudio(ToastAudio audio)
-		{
-			switch (audio)
-			{
-				case ToastAudio.Silent:
-					return AudioOption.Silent;
+            // Fill in image element.
+            switch (templateType)
+            {
+                case ToastTemplateType.ToastImageAndText01:
+                case ToastTemplateType.ToastImageAndText02:
+                case ToastTemplateType.ToastImageAndText04:
+                    var imageElements = document.GetElementsByTagName("image");
+                    imageElements[0].Attributes.GetNamedItem("src").NodeValue = request.ToastLogoFilePath;
+                    break;
+            }
 
-				case ToastAudio.Default:
-				case ToastAudio.IM:
-				case ToastAudio.Mail:
-				case ToastAudio.Reminder:
-				case ToastAudio.SMS:
-					return AudioOption.Short;
+            // Fill in text elements.
+            var textElements = document.GetElementsByTagName("text");
+            switch (templateType)
+            {
+                case ToastTemplateType.ToastImageAndText01:
+                case ToastTemplateType.ToastText01:
+                    textElements[0].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
+                    break;
 
-				default:
-					return AudioOption.Long;
-			}
-		}
+                case ToastTemplateType.ToastImageAndText02:
+                case ToastTemplateType.ToastText02:
+                    textElements[0].AppendChild(document.CreateTextNode(request.ToastTitle));
+                    textElements[1].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
+                    break;
 
-		#endregion
+                case ToastTemplateType.ToastImageAndText04:
+                case ToastTemplateType.ToastText04:
+                    textElements[0].AppendChild(document.CreateTextNode(request.ToastTitle));
+                    textElements[1].AppendChild(document.CreateTextNode(request.ToastBodyList[0]));
+                    textElements[2].AppendChild(document.CreateTextNode(request.ToastBodyList[1]));
+                    break;
+            }
 
-		#region Shortcut
+            return document;
+        }
 
-		/// <summary>
-		/// Waiting duration before showing a toast after the shortcut file is installed
-		/// </summary>
-		/// <remarks>It seems that roughly 3 seconds are required.</remarks>
-		private static readonly TimeSpan _waitingDuration = TimeSpan.FromSeconds(3);
+        private static ToastTemplateType GetTemplateType(ToastRequest request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.ToastLogoFilePath))
+            {
+                if (string.IsNullOrWhiteSpace(request.ToastTitle))
+                    return ToastTemplateType.ToastImageAndText01;
 
-		/// <summary>
-		/// Checks and installs a shortcut file in Start menu.
-		/// </summary>
-		/// <param name="request">Toast request</param>
-		private static async Task CheckInstallShortcut(ToastRequest request)
-		{
-			var shortcutFilePath = Path.Combine(
-				Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), // Not CommonStartMenu
-				"Programs",
-				request.ShortcutFileName);
+                return (request.ToastBodyList.Count < 2)
+                    ? ToastTemplateType.ToastImageAndText02
+                    : ToastTemplateType.ToastImageAndText04;
 
-			var shortcut = new Shortcut();
+                // ToastTemplateType.ToastImageAndText03 will not be used.
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(request.ToastTitle))
+                    return ToastTemplateType.ToastText01;
 
-			if (!shortcut.CheckShortcut(
-				shortcutPath: shortcutFilePath,
-				targetPath: request.ShortcutTargetFilePath,
-				arguments: request.ShortcutArguments,
-				comment: request.ShortcutComment,
-				workingFolder: request.ShortcutWorkingFolder,
-				windowState: request.ShortcutWindowState,
-				iconPath: request.ShortcutIconFilePath,
-				appId: request.AppId,
-				activatorId: request.ActivatorId))
-			{
-				shortcut.InstallShortcut(
-					shortcutPath: shortcutFilePath,
-					targetPath: request.ShortcutTargetFilePath,
-					arguments: request.ShortcutArguments,
-					comment: request.ShortcutComment,
-					workingFolder: request.ShortcutWorkingFolder,
-					windowState: request.ShortcutWindowState,
-					iconPath: request.ShortcutIconFilePath,
-					appId: request.AppId,
-					activatorId: request.ActivatorId);
+                return (request.ToastBodyList.Count < 2)
+                    ? ToastTemplateType.ToastText02
+                    : ToastTemplateType.ToastText04;
 
-				await Task.Delay((TimeSpan.Zero < request.WaitingDuration) ? request.WaitingDuration : _waitingDuration);
-			}
-		}
+                // ToastTemplateType.ToastText03 will not be used.
+            }
+        }
 
-		#endregion
+        /// <summary>
+        /// Prepares a toast document.
+        /// </summary>
+        /// <param name="request">Toast request</param>
+        /// <returns>Toast document</returns>
+        private static XmlDocument PrepareToastDocument(ToastRequest request)
+        {
+            XmlDocument document;
+            if (!string.IsNullOrWhiteSpace(request.ToastXml))
+            {
+                // Load a toast document from XML.
+                document = new XmlDocument();
+                try
+                {
+                    document.LoadXml(request.ToastXml);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                // Compose a toast document.
+                document = OsVersion.IsTenOrNewer
+                    ? ComposeVisualForWin10(request)
+                    : ComposeVisualForWin8(request);
 
-		#region Toast
+                document = AddAudio(document, request);
+            }
 
-		/// <summary>
-		/// Shows a toast.
-		/// </summary>
-		/// <param name="document">Toast document</param>
-		/// <param name="appId">AppUserModelID</param>
-		/// <returns>Result of showing a toast</returns>
-		private static async Task<ToastResult> ShowBaseAsync(XmlDocument document, string appId)
-		{
-			// Create a toast and prepare to handle toast events.
-			var toast = new ToastNotification(document);
-			var tcs = new TaskCompletionSource<ToastResult>();
+            Debug.WriteLine(document.GetXml());
 
-			TypedEventHandler<ToastNotification, object> activated = (sender, e) =>
-			{
-				tcs.SetResult(ToastResult.Activated);
-			};
-			toast.Activated += activated;
+            return document;
+        }
 
-			TypedEventHandler<ToastNotification, ToastDismissedEventArgs> dismissed = (sender, e) =>
-			{
-				switch (e.Reason)
-				{
-					case ToastDismissalReason.ApplicationHidden:
-						tcs.SetResult(ToastResult.ApplicationHidden);
-						break;
-					case ToastDismissalReason.UserCanceled:
-						tcs.SetResult(ToastResult.UserCanceled);
-						break;
-					case ToastDismissalReason.TimedOut:
-						tcs.SetResult(ToastResult.TimedOut);
-						break;
-				}
-			};
-			toast.Dismissed += dismissed;
+        /// <summary>
+        /// Shows a toast.
+        /// </summary>
+        /// <param name="document">Toast document</param>
+        /// <param name="appId">AppUserModelID</param>
+        /// <returns>Result of showing a toast</returns>
+        private static async Task<ToastResult> ShowBaseAsync(XmlDocument document, string appId)
+        {
+            // Create a toast and prepare to handle toast events.
+            var toast = new ToastNotification(document);
+            var tcs = new TaskCompletionSource<ToastResult>();
 
-			TypedEventHandler<ToastNotification, ToastFailedEventArgs> failed = (sender, e) =>
-			{
-				tcs.SetResult(ToastResult.Failed);
-			};
-			toast.Failed += failed;
+            TypedEventHandler<ToastNotification, object> activated = (sender, e) =>
+            {
+                tcs.SetResult(ToastResult.Activated);
+            };
+            toast.Activated += activated;
 
-			// Show a toast.
-			ToastNotificationManager.CreateToastNotifier(appId).Show(toast);
+            TypedEventHandler<ToastNotification, ToastDismissedEventArgs> dismissed = (sender, e) =>
+            {
+                switch (e.Reason)
+                {
+                    case ToastDismissalReason.ApplicationHidden:
+                        tcs.SetResult(ToastResult.ApplicationHidden);
+                        break;
 
-			// Wait for the result.
-			var result = await tcs.Task;
+                    case ToastDismissalReason.UserCanceled:
+                        tcs.SetResult(ToastResult.UserCanceled);
+                        break;
 
-			Debug.WriteLine($"Toast result: {result}");
+                    case ToastDismissalReason.TimedOut:
+                        tcs.SetResult(ToastResult.TimedOut);
+                        break;
+                }
+            };
+            toast.Dismissed += dismissed;
 
-			toast.Activated -= activated;
-			toast.Dismissed -= dismissed;
-			toast.Failed -= failed;
+            TypedEventHandler<ToastNotification, ToastFailedEventArgs> failed = (sender, e) =>
+            {
+                tcs.SetResult(ToastResult.Failed);
+            };
+            toast.Failed += failed;
 
-			return result;
-		}
+            // Show a toast.
+            ToastNotificationManager.CreateToastNotifier(appId).Show(toast);
 
-		#endregion
-	}
+            // Wait for the result.
+            var result = await tcs.Task;
+
+            Debug.WriteLine($"Toast result: {result}");
+
+            toast.Activated -= activated;
+            toast.Dismissed -= dismissed;
+            toast.Failed -= failed;
+
+            return result;
+        }
+
+        #endregion Private Methods
+    }
 }

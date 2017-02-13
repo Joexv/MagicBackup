@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Runtime.Serialization;
+
 namespace CodeIsle.LibIpsNet.Exceptions
 {
     [Serializable]
     public class IpsScrambledException : Exception
     {
+        #region Public Constructors
+
         public IpsScrambledException()
             : base() { }
 
@@ -23,7 +23,13 @@ namespace CodeIsle.LibIpsNet.Exceptions
         public IpsScrambledException(string format, Exception innerException, params object[] args)
             : base(string.Format(format, args), innerException) { }
 
+        #endregion Public Constructors
+
+        #region Protected Constructors
+
         protected IpsScrambledException(SerializationInfo info, StreamingContext context)
             : base(info, context) { }
+
+        #endregion Protected Constructors
     }
 }

@@ -1,25 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Nintenlord.UPSpatcher
 {
     public unsafe class UPSfile
     {
-        bool validPatch;
-        public bool ValidPatch
-        {
-            get { return validPatch; }
-        }
-        uint originalFileCRC32;
-        uint newFileCRC32;
-        uint patchCRC32;
-        ulong oldFileSize;
-        ulong newFileSize;
-        ulong[] changedOffsets;
-        byte[][] XORbytes;
+        #region Private Fields
+
+        private ulong[] changedOffsets;
+        private uint newFileCRC32;
+        private ulong newFileSize;
+        private ulong oldFileSize;
+        private uint originalFileCRC32;
+        private uint patchCRC32;
+        private bool validPatch;
+        private byte[][] XORbytes;
+
+        #endregion Private Fields
+
+        #region Public Constructors
 
         public UPSfile(string filePath)
         {
@@ -45,7 +47,7 @@ namespace Nintenlord.UPSpatcher
             {
                 //header
                 byte* currentPtr = UPSptr;
-                string header = new string((sbyte*)currentPtr,0,4,Encoding.ASCII);
+                string header = new string((sbyte*)currentPtr, 0, 4, Encoding.ASCII);
                 if (header != "UPS1")
                     return;
                 currentPtr += 4;
@@ -72,9 +74,8 @@ namespace Nintenlord.UPSpatcher
                 //end
                 originalFileCRC32 = *((uint*)(currentPtr));
                 newFileCRC32 = *((uint*)(currentPtr + 4));
-                patchCRC32 = *((uint*)(currentPtr + 8));                            
+                patchCRC32 = *((uint*)(currentPtr + 8));
             }
-
 
             changedOffsets = changedOffsetsList.ToArray();
             XORbytes = XORbytesList.ToArray();
@@ -124,53 +125,19 @@ namespace Nintenlord.UPSpatcher
             XORbytes = XORbytesList.ToArray();
             patchCRC32 = calculatePatchCRC32();
         }
-        
-        static byte[] Encrypt(ulong offset)
-        {
-            List<byte> bytes = new List<byte>(8);
 
-            ulong x = offset & 0x7f;
-            offset >>= 7;
-            while (offset != 0)
-            {
-                bytes.Add((byte)x);
-                offset--;
-                x = offset & 0x7f;
-                offset >>= 7;
-            }
-            bytes.Add((byte)(0x80 | x));
-            return bytes.ToArray();
-        }
-        
-        static ulong Decrypt(byte** pointer)
+        #endregion Public Constructors
+
+        #region Public Properties
+
+        public bool ValidPatch
         {
-            ulong value = 0;
-            int shift = 1;
-            byte x = *((*pointer)++);
-            value += (ulong)((x & 0x7F) * shift);
-            while ((x & 0x80) == 0)
-            {
-                shift <<= 7;
-                value += (ulong)shift;
-                x = *((*pointer)++);
-                value += (ulong)((x & 0x7F) * shift);
-            }
-            return value;
+            get { return validPatch; }
         }
 
-        private uint calculatePatchCRC32()
-        {
-            return CRC32.crc32_calculate(ToBinary());
-        }
-        
-        public bool ValidToApply(byte[] file)
-        {
-            uint fileCRC32 = CRC32.crc32_calculate(file);
-            bool fitsAsOld = oldFileSize == (ulong)file.Length && fileCRC32 == originalFileCRC32;
-            bool fitsAsNew = newFileSize == (ulong)file.Length && fileCRC32 == newFileCRC32;
+        #endregion Public Properties
 
-            return validPatch && (fitsAsOld || fitsAsNew);
-        }
+        #region Public Methods
 
         public byte[] Apply(byte[] file)
         {
@@ -182,7 +149,6 @@ namespace Nintenlord.UPSpatcher
 
             fixed (byte* resultPtr = &result[0])
             {
-                
                 Marshal.Copy(file, 0, new IntPtr(resultPtr), Math.Min(file.Length, result.Length));
                 //int index = file.Length;
                 //while (index < result.Length)
@@ -204,6 +170,77 @@ namespace Nintenlord.UPSpatcher
             byte[] file = br.ReadBytes((int)br.BaseStream.Length);
             br.Close();
             return Apply(file);
+        }
+
+        public int[,] getData()
+        {
+            int[,] result = new int[changedOffsets.Length, 2];
+            for (int i = 0; i < changedOffsets.Length; i++)
+            {
+                result[i, 0] = (int)changedOffsets[i];
+                result[i, 1] = XORbytes[i].Length;
+            }
+            return result;
+        }
+
+        public bool ValidToApply(byte[] file)
+        {
+            uint fileCRC32 = CRC32.crc32_calculate(file);
+            bool fitsAsOld = oldFileSize == (ulong)file.Length && fileCRC32 == originalFileCRC32;
+            bool fitsAsNew = newFileSize == (ulong)file.Length && fileCRC32 == newFileCRC32;
+
+            return validPatch && (fitsAsOld || fitsAsNew);
+        }
+
+        public void writeToFile(string path)
+        {
+            BinaryWriter bw = new BinaryWriter(File.Open(path, FileMode.Create));
+            byte[] file = ToBinary();
+            bw.Write(file);
+            bw.Write(CRC32.crc32_calculate(file));
+            bw.Close();
+        }
+
+        #endregion Public Methods
+
+        #region Private Methods
+
+        private static ulong Decrypt(byte** pointer)
+        {
+            ulong value = 0;
+            int shift = 1;
+            byte x = *((*pointer)++);
+            value += (ulong)((x & 0x7F) * shift);
+            while ((x & 0x80) == 0)
+            {
+                shift <<= 7;
+                value += (ulong)shift;
+                x = *((*pointer)++);
+                value += (ulong)((x & 0x7F) * shift);
+            }
+            return value;
+        }
+
+        private static byte[] Encrypt(ulong offset)
+        {
+            List<byte> bytes = new List<byte>(8);
+
+            ulong x = offset & 0x7f;
+            offset >>= 7;
+            while (offset != 0)
+            {
+                bytes.Add((byte)x);
+                offset--;
+                x = offset & 0x7f;
+                offset >>= 7;
+            }
+            bytes.Add((byte)(0x80 | x));
+            return bytes.ToArray();
+        }
+
+        private uint calculatePatchCRC32()
+        {
+            return CRC32.crc32_calculate(ToBinary());
         }
 
         private byte[] ToBinary()
@@ -233,25 +270,6 @@ namespace Nintenlord.UPSpatcher
             return file.ToArray();
         }
 
-        public void writeToFile(string path)
-        {
-            BinaryWriter bw = new BinaryWriter(File.Open(path, FileMode.Create));
-            byte[] file = ToBinary();
-            bw.Write(file);
-            bw.Write(CRC32.crc32_calculate(file));
-            bw.Close();
-        }
-
-        public int[,] getData()
-        {
-            int[,] result = new int[changedOffsets.Length, 2];
-            for (int i = 0; i < changedOffsets.Length; i++)
-            {
-                result[i, 0] = (int)changedOffsets[i];
-                result[i, 1] = XORbytes[i].Length;
-            }
-            return result;
-        }
+        #endregion Private Methods
     }
-    
 }

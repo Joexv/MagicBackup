@@ -4,75 +4,85 @@ using System.Management;
 
 namespace DesktopToast.Helper
 {
-	/// <summary>
-	/// OS version information
-	/// </summary>
-	internal class OsVersion
-	{
-		/// <summary>
-		/// Whether OS is Windows 8 or newer
-		/// </summary>
-		/// <remarks>Windows 8 = version 6.2</remarks>
-		public static bool IsEightOrNewer
-		{
-			get
-			{
-				if (!_isEightOrNewer.HasValue)
-				{
-					var ver = GetOsVersionByWmi();
-					_isEightOrNewer = (ver != null) && (((6 == ver.Major) && (2 <= ver.Minor)) || (7 <= ver.Major));
-				}
+    /// <summary>
+    /// OS version information
+    /// </summary>
+    internal class OsVersion
+    {
+        #region Private Fields
 
-				return _isEightOrNewer.Value;
-			}
-		}
-		private static bool? _isEightOrNewer;
+        private static bool? _isEightOrNewer;
 
-		/// <summary>
-		/// Whether OS is Windows 10 or newer
-		/// </summary>
-		/// <remarks>Windows 10 = version 10.0.10240.0 or higher</remarks>
-		public static bool IsTenOrNewer
-		{
-			get
-			{
-				if (!_isTenOrNewer.HasValue)
-				{
-					var ver = GetOsVersionByWmi();
-					_isTenOrNewer = (ver != null) && (10 <= ver.Major);
-				}
+        private static bool? _isTenOrNewer;
 
-				return _isTenOrNewer.Value;
-			}
-		}
-		private static bool? _isTenOrNewer;
+        #endregion Private Fields
 
-		#region Helper
+        #region Public Properties
 
-		/// <summary>
-		/// Get OS version.
-		/// </summary>
-		/// <returns>OS version</returns>
-		/// <remarks>Even on Windows 8.1 or newer, WMI seems not affected by the application manifest and so
-		/// always returns correct version number.</remarks>
-		private static Version GetOsVersionByWmi()
-		{
-			using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem"))
-			{
-				var os = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+        /// <summary>
+        /// Whether OS is Windows 8 or newer
+        /// </summary>
+        /// <remarks>Windows 8 = version 6.2</remarks>
+        public static bool IsEightOrNewer
+        {
+            get
+            {
+                if (!_isEightOrNewer.HasValue)
+                {
+                    var ver = GetOsVersionByWmi();
+                    _isEightOrNewer = (ver != null) && (((6 == ver.Major) && (2 <= ver.Minor)) || (7 <= ver.Major));
+                }
 
-				var osTypeValue = (ushort)(os?["OSType"] ?? 0);
-				if (osTypeValue == 18) // WINNT
-				{
-					var versionValue = os?["Version"] as string;
-					if (versionValue != null)
-						return new Version(versionValue);
-				}
+                return _isEightOrNewer.Value;
+            }
+        }
 
-				return null;
-			}
-		}
+        /// <summary>
+        /// Whether OS is Windows 10 or newer
+        /// </summary>
+        /// <remarks>Windows 10 = version 10.0.10240.0 or higher</remarks>
+        public static bool IsTenOrNewer
+        {
+            get
+            {
+                if (!_isTenOrNewer.HasValue)
+                {
+                    var ver = GetOsVersionByWmi();
+                    _isTenOrNewer = (ver != null) && (10 <= ver.Major);
+                }
 
-		#endregion
-	}
+                return _isTenOrNewer.Value;
+            }
+        }
+
+        #endregion Public Properties
+
+        #region Private Methods
+
+        /// <summary>
+        /// Get OS version.
+        /// </summary>
+        /// <returns>OS version</returns>
+        /// <remarks>Even on Windows 8.1 or newer, WMI seems not affected by the application manifest and so
+        /// always returns correct version number.</remarks>
+        private static Version GetOsVersionByWmi()
+        {
+            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem"))
+            {
+                var os = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
+
+                var osTypeValue = (ushort)(os?["OSType"] ?? 0);
+                if (osTypeValue == 18) // WINNT
+                {
+                    var versionValue = os?["Version"] as string;
+                    if (versionValue != null)
+                        return new Version(versionValue);
+                }
+
+                return null;
+            }
+        }
+
+        #endregion Private Methods
+    }
 }
