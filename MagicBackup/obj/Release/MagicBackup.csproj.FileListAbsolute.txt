@@ -12,3 +12,4 @@ C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\bin\Release\Microsoft.Wi
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\bin\Release\System.Runtime.xml
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.exe
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.pdb
+C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.csprojResolveAssemblyReference.cache

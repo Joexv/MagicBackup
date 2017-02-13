@@ -168,7 +168,7 @@ namespace MagicBackup
                     }
                     BackupTypeError = "UPS";
                     UPSfile upsFile = new UPSfile(original2, modified2);
-                    upsFile.writeToFile(output);
+                    upsFile.writeToFile(output + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ups");
                 }
                 else if (radioButton3.Checked == true)
                 {
@@ -205,6 +205,19 @@ namespace MagicBackup
                 Settings.Write("BackupFile", label1.Text, "Settings");
             }
             ofd.Dispose();
+
+            BinaryReader br = new BinaryReader(File.Open(label1.Text, FileMode.Open));
+            long sourcelen = br.BaseStream.Length;
+            if (sourcelen > 16777216)
+            {
+                radioButton1.Enabled = false;
+                radioButton1.Checked = false;
+            }
+            else
+            {
+                radioButton1.Enabled = true;
+            }
+            br.Close();
 
             button4.Enabled = CheckButtons();
         }
@@ -328,7 +341,6 @@ namespace MagicBackup
         private void button9_Click(object sender, EventArgs e)
         {
             Backup();
-            //handleNotification();
         }
 
         private void ErrorNotification(string original, string modified, string output, string BackupType)
@@ -365,6 +377,7 @@ namespace MagicBackup
                 // Show the toast. Be sure to specify the AppUserModelId on your application's shortcut!
                 ToastNotificationManager.CreateToastNotifier(APP_ID).Show(toast);
             }
+            MessageBox.Show("ERROR");
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
