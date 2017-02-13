@@ -168,7 +168,7 @@ namespace MagicBackup
                     }
                     BackupTypeError = "UPS";
                     UPSfile upsFile = new UPSfile(original2, modified2);
-                    upsFile.writeToFile(output + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ups");
+                    upsFile.writeToFile(output + "//" + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ups");
                 }
                 else if (radioButton3.Checked == true)
                 {
