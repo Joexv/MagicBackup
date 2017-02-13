@@ -129,7 +129,7 @@ namespace MagicBackup
             original = label3.Text;
             modified = label1.Text;
             output = label2.Text;
-            string Time = string.Format("{0:yyyy-MM-dd_hh-mm-ss-tt}", DateTime.Now);
+            string Time = string.Format("{0:yyyy-MM-dd_hh.mm.ss.tt}", DateTime.Now);
             try
             {
                 if (radioButton1.Checked == true)
