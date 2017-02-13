@@ -556,13 +556,16 @@ namespace MagicBackup
 
         private void handleNotification()
         {
-            if (OldNoti == true)
+            if (checkBox1.Checked == true)
             {
-                BalloonNotification();
-            }
-            else if (NewNoti == true)
-            {
-                ToastNotification();
+                if (OldNoti == true)
+                {
+                    BalloonNotification();
+                }
+                else if (NewNoti == true)
+                {
+                    ToastNotification();
+                }
             }
         }
 
@@ -678,5 +681,10 @@ namespace MagicBackup
         }
 
         #endregion Private Methods
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
