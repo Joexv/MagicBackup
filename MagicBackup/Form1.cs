@@ -129,6 +129,7 @@ namespace MagicBackup
             original = label3.Text;
             modified = label1.Text;
             output = label2.Text;
+            string Time = string.Format("{0:yyyy-MM-dd_hh-mm-ss-tt}", DateTime.Now);
             try
             {
                 if (radioButton1.Checked == true)
@@ -136,7 +137,7 @@ namespace MagicBackup
                     //IPS
                     BackupTypeError = "IPS";
                     Creator creator = new Creator();
-                    creator.Create(original, modified, output + @"/" + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ips");
+                    creator.Create(original, modified, output + @"/" + Path.GetFileNameWithoutExtension(label1.Text) + Time + ".ips");
                 }
                 else if (radioButton2.Checked == true)
                 {
@@ -168,14 +169,14 @@ namespace MagicBackup
                     }
                     BackupTypeError = "UPS";
                     UPSfile upsFile = new UPSfile(original2, modified2);
-                    upsFile.writeToFile(output + "//" + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ups");
+                    upsFile.writeToFile(output + "//" + Path.GetFileNameWithoutExtension(label1.Text) + Time + ".ups");
                 }
                 else if (radioButton3.Checked == true)
                 {
                     //BAK
                     BackupTypeError = "BAK";
                     string fileName = Path.GetFileNameWithoutExtension(label1.Text);
-                    File.Copy(label1.Text, label2.Text + "//" + fileName + BackupNum + ".bak");
+                    File.Copy(label1.Text, label2.Text + "//" + fileName + Time + ".bak");
                 }
             }
             catch
@@ -341,6 +342,7 @@ namespace MagicBackup
         private void button9_Click(object sender, EventArgs e)
         {
             Backup();
+            BackupNum++;
         }
 
         private void ErrorNotification(string original, string modified, string output, string BackupType)
