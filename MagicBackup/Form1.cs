@@ -17,6 +17,7 @@ using IniParser.Model;
 using IniParser;
 using System.Threading.Tasks;
 using DesktopToast;
+using Nintenlord.UPSpatcher;
 
 namespace MagicBackup
 {
@@ -126,6 +127,42 @@ namespace MagicBackup
             else if (NewNoti == true)
             {
                 ToastNotification();
+            }
+        }
+
+        private void ErrorNotification(string original, string modified, string output, string BackupType)
+        {
+            if (OldNoti == true)
+            {
+                notifyIcon1.BalloonTipTitle = "Magic Backup";
+                notifyIcon1.BalloonTipText = "Backup Failed " + original + " " + modified + " " + output + " " + BackupType;
+                notifyIcon1.Visible = true;
+                notifyIcon1.ShowBalloonTip(180000);
+                Thread.Sleep(2000);
+                notifyIcon1.Visible = false;
+            }
+            else if (NewNoti == true)
+            {
+                // Get a toast XML template
+                XmlDocument toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastImageAndText04);
+
+                // Fill in the text elements
+                XmlNodeList stringElements = toastXml.GetElementsByTagName("text");
+                stringElements[0].AppendChild(toastXml.CreateTextNode("Magic Backup"));
+                //Path.GetFileNameWithoutExtension(label1.Text)
+                stringElements[1].AppendChild(toastXml.CreateTextNode("Backup Failed"));
+                stringElements[2].AppendChild(toastXml.CreateTextNode(original + " " + modified + " " + output + " " + BackupType));
+
+                // Specify the absolute path to an image
+                String imagePath = @"C:\ProgramData\MagicBackup\image.png";
+                XmlNodeList imageElements = toastXml.GetElementsByTagName("image");
+                imageElements[0].Attributes.GetNamedItem("src").NodeValue = imagePath;
+
+                // Create the toast and attach event listeners
+                ToastNotification toast = new ToastNotification(toastXml);
+
+                // Show the toast. Be sure to specify the AppUserModelId on your application's shortcut!
+                ToastNotificationManager.CreateToastNotifier(APP_ID).Show(toast);
             }
         }
 
@@ -505,38 +542,64 @@ namespace MagicBackup
 
         private void Backup()
         {
+            string BackupTypeError = "IPS";
+            original = label3.Text;
+            modified = label1.Text;
+            output = label2.Text;
             try
             {
                 if (radioButton1.Checked == true)
                 {
                     //IPS
-                    // Assign the original file.
-                    original = label3.Text;
-                    // Assign the modified file.
-                    modified = label1.Text;
-                    // Assign the output file (where the patch is written).
-                    output = label2.Text;
-                    // Create a new Creator object.
+                    BackupTypeError = "IPS";
                     Creator creator = new Creator();
-                    // Create the patch file (output is where the patched file is created).
                     creator.Create(original, modified, output + @"/" + Path.GetFileNameWithoutExtension(label1.Text) + BackupNum + ".ips");
 
                 }
                 else if (radioButton2.Checked == true)
                 {
                     //UPS
+                    byte[] original2 = null, modified2 = null;
+
+                    try
+                    {
+                        BinaryReader br = new BinaryReader(File.OpenRead(original));
+                        original2 = br.ReadBytes((int)br.BaseStream.Length);
+                        br.Close();
+                    }
+                    catch (Exception)
+                    {
+                        MessageBox.Show("Error opening file\n" + original);
+                        return;
+                    }
+
+                    try
+                    {
+                        BinaryReader br = new BinaryReader(File.Open(modified, FileMode.Open));
+                        modified2 = br.ReadBytes((int)br.BaseStream.Length);
+                        br.Close();
+                    }
+                    catch (Exception)
+                    {
+                        MessageBox.Show("Error opening file\n" + modified);
+                        return;
+                    }
+                    BackupTypeError = "UPS";
+                    UPSfile upsFile = new UPSfile(original2, modified2);
+                    upsFile.writeToFile(output);
                 }
                 else if (radioButton3.Checked == true)
                 {
                     //BAK
+                    BackupTypeError = "BAK";
                     string fileName = Path.GetFileNameWithoutExtension(label1.Text);
                     File.Copy(label1.Text, label2.Text + "//" + fileName + BackupNum + ".bak");
                 }
             }
             catch
             {
-                MessageBox.Show("ERROR");
-            }
+                ErrorNotification(original, modified, output, BackupTypeError);
+            }   
         }
 
         private void button10_Click(object sender, EventArgs e)
