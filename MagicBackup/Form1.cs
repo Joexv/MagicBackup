@@ -137,7 +137,7 @@ namespace MagicBackup
                     //IPS
                     BackupTypeError = "IPS";
                     Creator creator = new Creator();
-                    creator.Create(original, modified, output + @"/" + Path.GetFileNameWithoutExtension(label1.Text) + Time + ".ips");
+                    creator.Create(original, modified, output + @"/" + Path.GetFileNameWithoutExtension(label1.Text) + "_" + Time + "_" + ".ips");
                 }
                 else if (radioButton2.Checked == true)
                 {
@@ -169,14 +169,14 @@ namespace MagicBackup
                     }
                     BackupTypeError = "UPS";
                     UPSfile upsFile = new UPSfile(original2, modified2);
-                    upsFile.writeToFile(output + "//" + Path.GetFileNameWithoutExtension(label1.Text) + Time + ".ups");
+                    upsFile.writeToFile(output + "//" + Path.GetFileNameWithoutExtension(label1.Text) + "_" + Time + "_" + ".ups");
                 }
                 else if (radioButton3.Checked == true)
                 {
                     //BAK
                     BackupTypeError = "BAK";
                     string fileName = Path.GetFileNameWithoutExtension(label1.Text);
-                    File.Copy(label1.Text, label2.Text + "//" + fileName + Time + ".bak");
+                    File.Copy(label1.Text, label2.Text + "//" + fileName + "_" + Time + "_" + ".bak");
                 }
             }
             catch
@@ -342,7 +342,8 @@ namespace MagicBackup
         private void button9_Click(object sender, EventArgs e)
         {
             Backup();
-            BackupNum++;
+            
+            handleNotification();
         }
 
         private void ErrorNotification(string original, string modified, string output, string BackupType)
@@ -472,17 +473,12 @@ namespace MagicBackup
 
         private string getOSInfo()
         {
-            //Get Operating system information.
             OperatingSystem os = Environment.OSVersion;
-            //Get version information about the os.
             Version vs = os.Version;
-
-            //Variable to hold our return value
             string operatingSystem = "";
 
             if (os.Platform == PlatformID.Win32Windows)
             {
-                //This is a pre-NT version of Windows
                 switch (vs.Minor)
                 {
                     case 0:
@@ -534,23 +530,14 @@ namespace MagicBackup
                         break;
                 }
             }
-            //Make sure we actually got something in our OS check
-            //We don't want to just return " Service Pack 2" or " 32-bit"
-            //That information is useless without the OS version.
             if (operatingSystem != "")
             {
-                //Got something.  Let's prepend "Windows" and get more info.
                 operatingSystem = "Windows " + operatingSystem;
-                //See if there's a service pack installed.
                 if (os.ServicePack != "")
                 {
-                    //Append it to the OS name.  i.e. "Windows XP Service Pack 3"
                     operatingSystem += " " + os.ServicePack;
                 }
-                //Append the OS architecture.  i.e. "Windows XP Service Pack 3 32-bit"
-                //operatingSystem += " " + getOSArchitecture().ToString() + "-bit";
             }
-            //Return the information we've gathered.
             return operatingSystem;
         }
 
@@ -576,10 +563,9 @@ namespace MagicBackup
 
         private void OnElapsed(object sender, ElapsedEventArgs e)
         {
-            Backup();
-            BackupNum++;
+            Backup();          
             handleNotification();
-            timer.Start(); // Restart timer
+            timer.Start();
         }
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
@@ -684,7 +670,12 @@ namespace MagicBackup
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
+        }
 
+        private void backgroundWorker1_DoWork_1(object sender, DoWorkEventArgs e)
+        {
+            Backup();
+            handleNotification();
         }
     }
 }
