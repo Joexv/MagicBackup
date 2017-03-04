@@ -13,3 +13,17 @@ C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\bin\Release\System.Runti
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.exe
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.pdb
 C:\Users\Joexv\Documents\GitHub\MagicBackup\MagicBackup\obj\Release\MagicBackup.csprojResolveAssemblyReference.cache
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\MagicBackup.exe.config
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\obj\Release\MagicBackup.exe
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\MagicBackup.exe
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\MagicBackup.pdb
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\INIFileParser.dll
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\Microsoft.WindowsAPICodePack.dll
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\System.Runtime.dll
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\INIFileParser.xml
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\Microsoft.WindowsAPICodePack.xml
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\bin\Release\System.Runtime.xml
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\obj\Release\MagicBackup.Form1.resources
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\obj\Release\MagicBackup.Properties.Resources.resources
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\obj\Release\MagicBackup.csproj.GenerateResource.Cache
+C:\Users\joeol\Source\Repos\MagicBackup\MagicBackup\obj\Release\MagicBackup.pdb
